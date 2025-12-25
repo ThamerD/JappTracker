@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Gmail API credentials and tokens
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
