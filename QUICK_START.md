@@ -10,8 +10,15 @@ pip install -r requirements.txt
 
 ## 2. Set Up Gmail API Credentials
 
-1. Download `credentials.json` from Google Cloud Console (see main README)
-2. Place it in this directory
+**IMPORTANT**: Follow `GMAIL_SETUP.md` for detailed instructions. Key steps:
+
+1. Enable Gmail API in Google Cloud Console
+2. Configure OAuth consent screen
+3. **Add your Gmail email as a test user** (critical step!)
+4. Create OAuth credentials (Desktop app type)
+5. Download and save as `credentials.json` in this directory
+
+Without adding yourself as a test user, you'll get an "access_denied" error!
 
 ## 3. Configure Environment Variables
 

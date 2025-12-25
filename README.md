@@ -34,10 +34,26 @@ pip install -r requirements.txt
 3. Enable the Gmail API:
    - Navigate to "APIs & Services" > "Library"
    - Search for "Gmail API" and enable it
-4. Create credentials:
+4. Configure OAuth Consent Screen:
+   - Go to "APIs & Services" > "OAuth consent screen"
+   - Choose "External" (unless you have a Google Workspace, then choose "Internal")
+   - Fill in the required fields:
+     - App name: JappTracker (or any name)
+     - User support email: Your email
+     - Developer contact information: Your email
+   - Click "Save and Continue"
+   - On "Scopes" page, click "Save and Continue" (no need to add scopes here)
+   - On "Test users" page, **ADD YOUR GMAIL EMAIL ADDRESS** as a test user
+     - Click "+ ADD USERS"
+     - Enter your Gmail address
+     - Click "Add"
+   - Click "Save and Continue"
+5. Create credentials:
    - Go to "APIs & Services" > "Credentials"
    - Click "Create Credentials" > "OAuth client ID"
    - Choose "Desktop app" as the application type
+   - Name it (e.g., "JappTracker Desktop Client")
+   - Click "Create"
    - Download the credentials file and save it as `credentials.json` in this directory
 
 ### 3. Set Up Notion Database
