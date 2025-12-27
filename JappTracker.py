@@ -338,17 +338,17 @@ class NotionManager:
             print(f"Error checking if job exists: {e}")
             return None
     
-    def create_job_application(self, job: JobApplication, number: int) -> bool:
-        """Create a new job application entry in Notion."""
+    def create_job_application(self, job: JobApplication, number: int) -> Optional[str]:
+        """Create a new job application entry in Notion. Returns page_id if successful, None otherwise."""
         if not job.role or not job.organization:
             print(f"Error: Role and Organization are required")
-            return False
+            return None
         
         job.role = str(job.role).strip()
         job.organization = str(job.organization).strip()
         if not job.role or not job.organization:
             print(f"Error: Role and Organization cannot be empty")
-            return False
+            return None
         
         try:
             properties = {
@@ -369,16 +369,17 @@ class NotionManager:
             if job.job_description_link:
                 properties[self.desc_prop] = {"url": str(job.job_description_link)}
             
-            self.client.pages.create(
+            response = self.client.pages.create(
                 parent={"database_id": self.database_id},
                 properties=properties
             )
             
+            page_id = response.get('id')
             print(f"[OK] Created new job application: {job.role} at {job.organization}")
-            return True
+            return page_id
         except Exception as e:
             print(f"Error creating job application: {e}")
-            return False
+            return None
     
     def update_job_application(self, page_id: str, job: JobApplication) -> bool:
         """Update an existing job application in Notion."""
@@ -413,6 +414,8 @@ class JobApplicationTracker:
         self.email_reader = EmailReader()
         self.email_analyzer = EmailAnalyzer()
         self.notion_manager = NotionManager(notion_database_id)
+        # Track jobs processed in this run to avoid duplicates before Notion updates
+        self.processed_jobs = {}  # {(role, organization): page_id}
     
     def process_emails(self, max_emails: int = 10):
         """Process unread emails and update Notion database."""
@@ -467,15 +470,28 @@ class JobApplicationTracker:
             
             print(f"  -> Extracted: {job.role} at {job.organization} ({job.status})")
             
-            # Check if job already exists
-            existing_page_id = self.notion_manager.job_exists(job.role, job.organization)
+            # Create key for tracking
+            job_key = (job.role.strip().lower(), job.organization.strip().lower())
+            
+            # Check if we've already processed this job in this run
+            existing_page_id = self.processed_jobs.get(job_key)
+            
+            # If not found locally, check Notion
+            if not existing_page_id:
+                existing_page_id = self.notion_manager.job_exists(job.role, job.organization)
+                # Cache the result (even if None) to avoid duplicate Notion queries
+                if existing_page_id:
+                    self.processed_jobs[job_key] = existing_page_id
             
             if existing_page_id:
                 print("  -> Job already exists, updating...")
                 self.notion_manager.update_job_application(existing_page_id, job)
             else:
                 print(f"  -> New job application, creating entry (Number: {next_number})...")
-                self.notion_manager.create_job_application(job, next_number)
+                page_id = self.notion_manager.create_job_application(job, next_number)
+                if page_id:
+                    # Cache the page_id so we don't add duplicates
+                    self.processed_jobs[job_key] = page_id
                 next_number += 1  # Increment for next job in this run
             
             # Mark email as read
