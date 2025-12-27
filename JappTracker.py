@@ -183,7 +183,7 @@ Email Body:
 
 Extract the following information:
 1. Role/Job Title (the position name)
-2. Organization/Company Name
+2. Organization/Company Name ("Indeed" is a job board, it should not be considered as an organization).
 3. Job description link/URL (if mentioned, otherwise return null)
 4. Status: Determine the current status - one of: "Applied" (application submitted), "Interview" (interview invitation or scheduling), "Rejected" (rejection notification). Default to "Applied" if unclear.
 
@@ -338,7 +338,7 @@ class NotionManager:
             print(f"Error checking if job exists: {e}")
             return None
     
-    def create_job_application(self, job: JobApplication) -> bool:
+    def create_job_application(self, job: JobApplication, number: int) -> bool:
         """Create a new job application entry in Notion."""
         if not job.role or not job.organization:
             print(f"Error: Role and Organization are required")
@@ -351,8 +351,6 @@ class NotionManager:
             return False
         
         try:
-            number = self.get_next_number()
-            
             properties = {
                 self.number_prop: {"number": number},
                 self.role_prop: {"title": [{"text": {"content": job.role}}]},
@@ -427,6 +425,9 @@ class JobApplicationTracker:
         
         print(f"Found {len(messages)} unread email(s). Processing...")
         
+        # Get the starting number once at the beginning to avoid race conditions
+        next_number = self.notion_manager.get_next_number()
+        
         for msg in messages:
             email_data = self.email_reader.get_email_content(msg['id'])
             
@@ -473,8 +474,9 @@ class JobApplicationTracker:
                 print("  -> Job already exists, updating...")
                 self.notion_manager.update_job_application(existing_page_id, job)
             else:
-                print("  -> New job application, creating entry...")
-                self.notion_manager.create_job_application(job)
+                print(f"  -> New job application, creating entry (Number: {next_number})...")
+                self.notion_manager.create_job_application(job, next_number)
+                next_number += 1  # Increment for next job in this run
             
             # Mark email as read
             self.email_reader.mark_as_read(msg['id'])
