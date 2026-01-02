@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from openai import OpenAI
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -49,11 +50,19 @@ class EmailReader:
         # If there are no valid credentials, let the user log in
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
+                try:
+                    creds.refresh(Request())
+                except RefreshError:
+                    # Token has been expired or revoked, delete it and re-authenticate
+                    print("Token expired or revoked. Re-authenticating...")
+                    os.remove('token.json')
+                    creds = None
+            
+            if not creds:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
+            
             # Save the credentials for the next run
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())
